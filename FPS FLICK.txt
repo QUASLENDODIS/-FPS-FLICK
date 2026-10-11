@@ -27,7 +27,7 @@ local Config = {
 local State = {
     IsSpectating = false,
     LastShotTime = 0,
-    IsOpen = true
+    IsOpen = false
 }
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -43,22 +43,15 @@ else
     ScreenGui.Parent = CoreGui
 end
 
--- Main Window Frame (Centered AnchorPoint for true center scaling)
+-- Main Window Frame (Starts as a small 44x44 square containing just the gear)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 310)
-MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.Position = UDim2.new(0.5, 0, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 44, 0, 44)
+MainFrame.Position = UDim2.new(0.5, -22, 0.4, -22)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
-
--- UIScale for smooth center pop/shrink popup animation
-local UIscaling = Instance.new("UIScale")
-UIscaling.Name = "UIscaling"
-UIscaling.Scale = 1
-UIscaling.Parent = MainFrame
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 16)
@@ -99,7 +92,7 @@ TitleFix.Parent = TitleBar
 local GearIcon = Instance.new("TextLabel")
 GearIcon.Name = "GearIcon"
 GearIcon.Size = UDim2.new(0, 30, 1, 0)
-GearIcon.Position = UDim2.new(0, 10, 0, 0)
+GearIcon.Position = UDim2.new(0, 7, 0, 0)
 GearIcon.BackgroundTransparency = 1
 GearIcon.Text = "⚙️"
 GearIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -122,7 +115,7 @@ local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -38, 0.5, -15)
 MinBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
-MinBtn.Text = "-"
+MinBtn.Text = "+"
 MinBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
 MinBtn.TextSize = 16
 MinBtn.Font = Enum.Font.GothamBold
@@ -169,6 +162,7 @@ Container.BorderSizePixel = 0
 Container.CanvasSize = UDim2.new(0, 0, 0, 260)
 Container.ScrollBarThickness = 3
 Container.ScrollBarImageColor3 = Color3.fromRGB(120, 80, 220)
+Container.Visible = false
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
@@ -297,7 +291,7 @@ SensBoxCorner.Parent = SensBox
 local SensBoxStroke = Instance.new("UIStroke")
 SensBoxStroke.Color = Color3.fromRGB(50, 50, 70)
 SensBoxStroke.Thickness = 1
-SensBoxStroke.Parent = SensBox
+SensBoxStroke.Parent = SensCard
 
 -- 4. Status Badge Card
 local StatusCard = createCard("StatusCard", 38)
@@ -314,16 +308,19 @@ StatusText.Parent = StatusCard
 -- =================================================================
 -- PART 3: Animations, Toggle Handlers, Sensitivity Input & Helpers
 -- =================================================================
-local UIscaling = MainFrame:WaitForChild("UIscaling")
-
 local function toggleOpenClose()
     State.IsOpen = not State.IsOpen
     
-    local targetScale = State.IsOpen and 1 or 0
+    local targetSize = State.IsOpen and UDim2.new(0, 320, 0, 310) or UDim2.new(0, 44, 0, 44)
     local targetRotation = State.IsOpen and GearIcon.Rotation + 360 or GearIcon.Rotation - 360
     
-    -- Smooth pop/shrink scaling with back easing bounce matching Prisma 3D video
-    TweenService:Create(UIscaling, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = targetScale}):Play()
+    if State.IsOpen then
+        Container.Visible = true
+    else
+        Container.Visible = false
+    end
+    
+    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = targetSize}):Play()
     TweenService:Create(GearIcon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = targetRotation}):Play()
     
     MinBtn.Text = State.IsOpen and "-" or "+"
@@ -331,13 +328,15 @@ end
 
 MinBtn.MouseButton1Click:Connect(toggleOpenClose)
 
--- Play Opening Pop Animation on Startup matching Prisma3D Open reference
+-- Play Opening Animation on Startup matching Prisma3D Open reference video
 task.spawn(function()
-    UIscaling.Scale = 0
-    GearIcon.Rotation = -360
     task.wait(0.2)
-    TweenService:Create(UIscaling, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+    State.IsOpen = true
+    Container.Visible = true
+    GearIcon.Rotation = -360
+    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 320, 0, 310)}):Play()
     TweenService:Create(GearIcon, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0}):Play()
+    MinBtn.Text = "-"
 end)
 
 SensBox.FocusLost:Connect(function()
