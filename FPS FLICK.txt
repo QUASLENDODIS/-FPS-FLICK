@@ -27,7 +27,7 @@ local Config = {
 local State = {
     IsSpectating = false,
     LastShotTime = 0,
-    IsOpen = false
+    IsOpen = true
 }
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -43,11 +43,10 @@ else
     ScreenGui.Parent = CoreGui
 end
 
--- Main Window Frame (Starts as a small 44x44 square containing just the gear)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 44, 0, 44)
-MainFrame.Position = UDim2.new(0.5, -22, 0.4, -22)
+MainFrame.Size = UDim2.new(0, 320, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -160, 0.4, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
@@ -89,7 +88,7 @@ TitleFix.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 TitleFix.BorderSizePixel = 0
 TitleFix.Parent = TitleBar
 
-local GearIcon = Instance.new("TextLabel")
+local GearIcon = Instance.new("TextButton")
 GearIcon.Name = "GearIcon"
 GearIcon.Size = UDim2.new(0, 30, 1, 0)
 GearIcon.Position = UDim2.new(0, 7, 0, 0)
@@ -98,6 +97,7 @@ GearIcon.Text = "⚙️"
 GearIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
 GearIcon.TextSize = 16
 GearIcon.Font = Enum.Font.GothamBold
+GearIcon.AutoButtonColor = false
 GearIcon.Parent = TitleBar
 
 local TitleText = Instance.new("TextLabel")
@@ -115,7 +115,7 @@ local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -38, 0.5, -15)
 MinBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
-MinBtn.Text = "+"
+MinBtn.Text = "-"
 MinBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
 MinBtn.TextSize = 16
 MinBtn.Font = Enum.Font.GothamBold
@@ -162,7 +162,6 @@ Container.BorderSizePixel = 0
 Container.CanvasSize = UDim2.new(0, 0, 0, 260)
 Container.ScrollBarThickness = 3
 Container.ScrollBarImageColor3 = Color3.fromRGB(120, 80, 220)
-Container.Visible = false
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
@@ -306,38 +305,56 @@ StatusText.TextSize = 11
 StatusText.TextXAlignment = Enum.TextXAlignment.Left
 StatusText.Parent = StatusCard
 -- =================================================================
--- PART 3: Animations, Toggle Handlers, Sensitivity Input & Helpers
+-- PART 3: Animations, Toggles, Sensitivity Input & Helpers
 -- =================================================================
+local originalSize = UDim2.new(0, 320, 0, 310)
+local closedSize = UDim2.new(0, 44, 0, 44)
+local originalPos = MainFrame.Position
+
 local function toggleOpenClose()
     State.IsOpen = not State.IsOpen
+    local currentPos = MainFrame.Position
     
-    local targetSize = State.IsOpen and UDim2.new(0, 320, 0, 310) or UDim2.new(0, 44, 0, 44)
-    local targetRotation = State.IsOpen and GearIcon.Rotation + 360 or GearIcon.Rotation - 360
-    
-    if State.IsOpen then
-        Container.Visible = true
-    else
+    if not State.IsOpen then
+        -- Step 1: Hide text and contents instantly so they don't bunch up
         Container.Visible = false
+        TitleText.Visible = false
+        
+        -- Step 2: Go UP first, then slide LEFT into compact gear box with bounce & gear spin
+        local upPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset, currentPos.Y.Scale, currentPos.Y.Offset - 50)
+        local tweenUp = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = upPos})
+        tweenUp:Play()
+        tweenUp.Completed:Wait()
+        
+        local leftPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset - 140, currentPos.Y.Scale, currentPos.Y.Offset - 50)
+        local tweenLeft = TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Position = leftPos,
+            Size = closedSize
+        })
+        local tweenGear = TweenService:Create(GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = -360})
+        tweenLeft:Play()
+        tweenGear:Play()
+        MinBtn.Text = "+"
+    else
+        -- Expand back out: Slide right/down to original position and size
+        local tweenExpand = TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Position = originalPos,
+            Size = originalSize
+        })
+        local tweenGear = TweenService:Create(GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0})
+        tweenExpand:Play()
+        tweenGear:Play()
+        
+        tweenExpand.Completed:Wait()
+        -- Restore text and content intact
+        Container.Visible = true
+        TitleText.Visible = true
+        MinBtn.Text = "-"
     end
-    
-    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = targetSize}):Play()
-    TweenService:Create(GearIcon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = targetRotation}):Play()
-    
-    MinBtn.Text = State.IsOpen and "-" or "+"
 end
 
+GearIcon.MouseButton1Click:Connect(toggleOpenClose)
 MinBtn.MouseButton1Click:Connect(toggleOpenClose)
-
--- Play Opening Animation on Startup matching Prisma3D Open reference video
-task.spawn(function()
-    task.wait(0.2)
-    State.IsOpen = true
-    Container.Visible = true
-    GearIcon.Rotation = -360
-    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 320, 0, 310)}):Play()
-    TweenService:Create(GearIcon, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0}):Play()
-    MinBtn.Text = "-"
-end)
 
 SensBox.FocusLost:Connect(function()
     local val = tonumber(SensBox.Text)
