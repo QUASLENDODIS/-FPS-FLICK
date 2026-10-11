@@ -27,7 +27,7 @@ local Config = {
 local State = {
     IsSpectating = false,
     LastShotTime = 0,
-    IsMinimized = false
+    IsMinimized = true
 }
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -43,9 +43,10 @@ else
     ScreenGui.Parent = CoreGui
 end
 
+-- Main Window Frame (Starts collapsed as just the title bar/square border)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 4)
+MainFrame.Size = UDim2.new(0, 320, 0, 44)
 MainFrame.Position = UDim2.new(0.5, -160, 0.4, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
 MainFrame.BorderSizePixel = 0
@@ -114,7 +115,7 @@ local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -38, 0.5, -15)
 MinBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
-MinBtn.Text = "-"
+MinBtn.Text = "+"
 MinBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
 MinBtn.TextSize = 16
 MinBtn.Font = Enum.Font.GothamBold
@@ -161,6 +162,7 @@ Container.BorderSizePixel = 0
 Container.CanvasSize = UDim2.new(0, 0, 0, 260)
 Container.ScrollBarThickness = 3
 Container.ScrollBarImageColor3 = Color3.fromRGB(120, 80, 220)
+Container.Visible = false
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
@@ -312,7 +314,11 @@ local function toggleMinimize()
     local targetSize = State.IsMinimized and UDim2.new(0, 320, 0, 44) or UDim2.new(0, 320, 0, 310)
     local targetRotation = State.IsMinimized and GearIcon.Rotation + 360 or GearIcon.Rotation - 360
     
-    Container.Visible = not State.IsMinimized
+    if State.IsMinimized then
+        Container.Visible = false
+    else
+        Container.Visible = true
+    end
     
     TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = targetSize}):Play()
     TweenService:Create(GearIcon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = targetRotation}):Play()
@@ -322,11 +328,15 @@ end
 
 MinBtn.MouseButton1Click:Connect(toggleMinimize)
 
+-- Play Opening Animation on Startup matching Prisma3D Open reference
 task.spawn(function()
-    task.wait(0.1)
+    task.wait(0.2)
+    State.IsMinimized = false
+    Container.Visible = true
     GearIcon.Rotation = -360
     TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 320, 0, 310)}):Play()
     TweenService:Create(GearIcon, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0}):Play()
+    MinBtn.Text = "-"
 end)
 
 SensBox.FocusLost:Connect(function()
