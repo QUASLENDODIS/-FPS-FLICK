@@ -1,5 +1,5 @@
 -- =================================================================
--- NEXUS ELITE SUITE // SINGLE-FILE BUNDLE FOR DELTA EXECUTOR
+-- NEXUS ELITE SUITE // WALLCHECK & CLOSEST TARGET AIM ASSIST
 -- =================================================================
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
@@ -23,7 +23,7 @@ local Config = {
     Sensitivity = 1.0,
     MaxDistance = 1500,
     FireCooldown = 0.35,
-    AimFOV = 150
+    AimFOV = 200
 }
 
 -- Runtime State
@@ -234,7 +234,7 @@ local AimLabel = Instance.new("TextLabel")
 AimLabel.Size = UDim2.new(1, -70, 1, 0)
 AimLabel.Position = UDim2.new(0, 12, 0, 0)
 AimLabel.BackgroundTransparency = 1
-AimLabel.Text = "👁️ Smooth Aim Assist"
+AimLabel.Text = "👁️ Smooth Aim Assist + Wallcheck"
 AimLabel.TextColor3 = Color3.fromRGB(220, 220, 235)
 AimLabel.TextSize = 12
 AimLabel.Font = Enum.Font.GothamMedium
@@ -353,7 +353,7 @@ end
 bindToggle(AutoTrack, "AutoShoot")
 bindToggle(AimTrack, "AimAssist")
 
--- Spectator Hook[span_0](start_span)[span_0](end_span)
+-- Spectator Hook[span_1](start_span)[span_1](end_span)
 local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
 if remotesFolder then
     local startSpectatingRemote = remotesFolder:FindFirstChild("StartSpectating")
@@ -378,6 +378,27 @@ local function getCharacterFromInstance(instance)
         current = current.Parent
     end
     return nil
+end
+
+-- Wallcheck Helper: Returns true if there are no obstacles between camera and target part
+local function isVisible(targetPart, targetChar)
+    local origin = Camera.CFrame.Position
+    local direction = targetPart.Position - origin
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
+    raycastParams.IgnoreWater = true
+    
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    if result then
+        local hitChar = getCharacterFromInstance(result.Instance)
+        if hitChar == targetChar then
+            return true
+        end
+        return false
+    end
+    return true
 end
 
 -- Fire Logic (Reload + Remotes)
@@ -463,8 +484,10 @@ RunService.RenderStepped:Connect(function()
         return 
     end
 
-    -- Aim Assist Processor
-    if Config.AimAssist then
+    local myRoot = character:FindFirstChild("HumanoidRootPart")
+
+    -- Aim Assist Processor: Closest 3D target in area with Wallcheck
+    if Config.AimAssist and myRoot then
         local closestTarget = nil
         local shortestDist = math.huge
         
@@ -473,16 +496,18 @@ RunService.RenderStepped:Connect(function()
                 local targetChar = player.Character
                 local hum = targetChar:FindFirstChildOfClass("Humanoid")
                 local head = targetChar:FindFirstChild("Head")
+                local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
                 
-                if hum and hum.Health > 0 and head then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                    if onScreen then
-                        local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        
-                        if dist < Config.AimFOV and dist < shortestDist then
-                            shortestDist = dist
-                            closestTarget = head
+                if hum and hum.Health > 0 and head and targetRoot then
+                    local worldDist = (targetRoot.Position - myRoot.Position).Magnitude
+                    
+                    if worldDist <= Config.MaxDistance then
+                        -- Verify line of sight (Wallcheck)
+                        if isVisible(head, targetChar) then
+                            if worldDist < shortestDist then
+                                shortestDist = worldDist
+                                closestTarget = head
+                            end
                         end
                     end
                 end
