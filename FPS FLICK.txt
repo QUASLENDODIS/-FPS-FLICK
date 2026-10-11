@@ -1,5 +1,5 @@
 -- =================================================================
--- NEXUS ELITE SUITE // WALLCHECK & CLOSEST TARGET AIM ASSIST
+-- NEXUS ELITE SUITE // SOFT AIM ASSIST + WALLCHECK
 -- =================================================================
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
@@ -23,7 +23,7 @@ local Config = {
     Sensitivity = 1.0,
     MaxDistance = 1500,
     FireCooldown = 0.35,
-    AimFOV = 200
+    AimFOV = 180 -- Screen radius for soft-pull activation
 }
 
 -- Runtime State
@@ -234,7 +234,7 @@ local AimLabel = Instance.new("TextLabel")
 AimLabel.Size = UDim2.new(1, -70, 1, 0)
 AimLabel.Position = UDim2.new(0, 12, 0, 0)
 AimLabel.BackgroundTransparency = 1
-AimLabel.Text = "👁️ Smooth Aim Assist + Wallcheck"
+AimLabel.Text = "👁️ Soft Aim Assist (Magnetic)"
 AimLabel.TextColor3 = Color3.fromRGB(220, 220, 235)
 AimLabel.TextSize = 12
 AimLabel.Font = Enum.Font.GothamMedium
@@ -353,7 +353,7 @@ end
 bindToggle(AutoTrack, "AutoShoot")
 bindToggle(AimTrack, "AimAssist")
 
--- Spectator Hook[span_1](start_span)[span_1](end_span)
+-- Spectator Hook
 local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
 if remotesFolder then
     local startSpectatingRemote = remotesFolder:FindFirstChild("StartSpectating")
@@ -380,7 +380,7 @@ local function getCharacterFromInstance(instance)
     return nil
 end
 
--- Wallcheck Helper: Returns true if there are no obstacles between camera and target part
+-- Wallcheck Helper
 local function isVisible(targetPart, targetChar)
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
@@ -484,28 +484,26 @@ RunService.RenderStepped:Connect(function()
         return 
     end
 
-    local myRoot = character:FindFirstChild("HumanoidRootPart")
-
-    -- Aim Assist Processor: Closest 3D target in area with Wallcheck
-    if Config.AimAssist and myRoot then
+    -- Soft Aim Assist Processor (Gentle Magnetic Pull + Wallcheck)
+    if Config.AimAssist then
         local closestTarget = nil
         local shortestDist = math.huge
+        local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
         
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character then
                 local targetChar = player.Character
                 local hum = targetChar:FindFirstChildOfClass("Humanoid")
                 local head = targetChar:FindFirstChild("Head")
-                local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
                 
-                if hum and hum.Health > 0 and head and targetRoot then
-                    local worldDist = (targetRoot.Position - myRoot.Position).Magnitude
-                    
-                    if worldDist <= Config.MaxDistance then
-                        -- Verify line of sight (Wallcheck)
-                        if isVisible(head, targetChar) then
-                            if worldDist < shortestDist then
-                                shortestDist = worldDist
+                if hum and hum.Health > 0 and head then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        
+                        if screenDist <= Config.AimFOV and isVisible(head, targetChar) then
+                            if screenDist < shortestDist then
+                                shortestDist = screenDist
                                 closestTarget = head
                             end
                         end
@@ -516,7 +514,8 @@ RunService.RenderStepped:Connect(function()
         
         if closestTarget then
             local targetCF = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
-            local smoothFactor = math.clamp(0.1 * Config.Sensitivity, 0.01, 0.5)
+            -- Gentle pull factor allowing easy manual camera override
+            local smoothFactor = math.clamp(0.02 * Config.Sensitivity, 0.005, 0.06)
             Camera.CFrame = Camera.CFrame:Lerp(targetCF, smoothFactor)
         end
     end
