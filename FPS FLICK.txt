@@ -1,5 +1,5 @@
 -- =================================================================
--- NEXUS ELITE SUITE // SOFT AIM ASSIST + WALLCHECK
+-- PART 1: Core Initialization, Services, and Main Window Frame
 -- =================================================================
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
@@ -11,28 +11,25 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Clean up existing instance if re-executed
 if CoreGui:FindFirstChild("NexusEliteFramework") then
     CoreGui.NexusEliteFramework:Destroy()
 end
 
--- Configuration Table
 local Config = {
     AutoShoot = false,
     AimAssist = false,
     Sensitivity = 1.0,
     MaxDistance = 1500,
     FireCooldown = 0.35,
-    AimFOV = 180 -- Screen radius for soft-pull activation
+    AimFOV = 180
 }
 
--- Runtime State
 local State = {
     IsSpectating = false,
-    LastShotTime = 0
+    LastShotTime = 0,
+    IsMinimized = false
 }
 
--- ScreenGui Setup
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NexusEliteFramework"
 ScreenGui.ResetOnSpawn = false
@@ -46,10 +43,9 @@ else
     ScreenGui.Parent = CoreGui
 end
 
--- Main Window Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 310)
+MainFrame.Size = UDim2.new(0, 320, 0, 4)
 MainFrame.Position = UDim2.new(0.5, -160, 0.4, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
 MainFrame.BorderSizePixel = 0
@@ -74,7 +70,6 @@ MainGradient.Color = ColorSequence.new({
 MainGradient.Rotation = 45
 MainGradient.Parent = MainStroke
 
--- Title Bar
 local TitleBar = Instance.new("Frame")
 TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 44)
@@ -93,19 +88,28 @@ TitleFix.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 TitleFix.BorderSizePixel = 0
 TitleFix.Parent = TitleBar
 
+local GearIcon = Instance.new("TextLabel")
+GearIcon.Name = "GearIcon"
+GearIcon.Size = UDim2.new(0, 30, 1, 0)
+GearIcon.Position = UDim2.new(0, 10, 0, 0)
+GearIcon.BackgroundTransparency = 1
+GearIcon.Text = "⚙️"
+GearIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+GearIcon.TextSize = 16
+GearIcon.Font = Enum.Font.GothamBold
+GearIcon.Parent = TitleBar
+
 local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(1, -70, 1, 0)
-TitleText.Position = UDim2.new(0, 16, 0, 0)
+TitleText.Size = UDim2.new(1, -85, 1, 0)
+TitleText.Position = UDim2.new(0, 45, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "⚡ NEXUS // ULTIMATE SUITE"
+TitleText.Text = "NEXUS // ULTIMATE SUITE"
 TitleText.TextColor3 = Color3.fromRGB(245, 245, 255)
 TitleText.TextSize = 12
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
--- Minimize Button
-local isMinimized = false
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -38, 0.5, -15)
@@ -121,7 +125,6 @@ local MinCorner = Instance.new("UICorner")
 MinCorner.CornerRadius = UDim.new(0, 8)
 MinCorner.Parent = MinBtn
 
--- Dragging Logic (Mobile Touch & Mouse)
 local dragging, dragInput, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -146,8 +149,9 @@ UserInputService.InputChanged:Connect(function(input)
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-
--- Scrolling Container
+-- =================================================================
+-- PART 2: UI Container, Cards, and Elements (Toggles, Sensitivity, Status)
+-- =================================================================
 local Container = Instance.new("ScrollingFrame")
 Container.Name = "Container"
 Container.Size = UDim2.new(1, -24, 1, -56)
@@ -164,15 +168,6 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.Parent = Container
 
-MinBtn.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    local targetSize = isMinimized and UDim2.new(0, 320, 0, 44) or UDim2.new(0, 320, 0, 310)
-    Container.Visible = not isMinimized
-    TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
-    MinBtn.Text = isMinimized and "+" or "-"
-end)
-
--- UI Card Generator Helper
 local function createCard(name, height)
     local card = Instance.new("Frame")
     card.Name = name
@@ -269,7 +264,7 @@ local SensLabel = Instance.new("TextLabel")
 SensLabel.Size = UDim2.new(1, -85, 1, 0)
 SensLabel.Position = UDim2.new(0, 12, 0, 0)
 SensLabel.BackgroundTransparency = 1
-SensLabel.Text = "⚙️ Camera Sensitivity"
+SensLabel.Text = "⚙️ Camera Sensitivity (Uncapped)"
 SensLabel.TextColor3 = Color3.fromRGB(220, 220, 235)
 SensLabel.TextSize = 12
 SensLabel.Font = Enum.Font.GothamMedium
@@ -308,19 +303,42 @@ StatusText.Font = Enum.Font.Gotham
 StatusText.TextSize = 11
 StatusText.TextXAlignment = Enum.TextXAlignment.Left
 StatusText.Parent = StatusCard
+-- =================================================================
+-- PART 3: Animations, Toggle Handlers, Sensitivity Input & Helpers
+-- =================================================================
+local function toggleMinimize()
+    State.IsMinimized = not State.IsMinimized
+    
+    local targetSize = State.IsMinimized and UDim2.new(0, 320, 0, 44) or UDim2.new(0, 320, 0, 310)
+    local targetRotation = State.IsMinimized and GearIcon.Rotation + 360 or GearIcon.Rotation - 360
+    
+    Container.Visible = not State.IsMinimized
+    
+    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = targetSize}):Play()
+    TweenService:Create(GearIcon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = targetRotation}):Play()
+    
+    MinBtn.Text = State.IsMinimized and "+" or "-"
+end
 
--- Handle Sensitivity Input
+MinBtn.MouseButton1Click:Connect(toggleMinimize)
+
+task.spawn(function()
+    task.wait(0.1)
+    GearIcon.Rotation = -360
+    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 320, 0, 310)}):Play()
+    TweenService:Create(GearIcon, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0}):Play()
+end)
+
 SensBox.FocusLost:Connect(function()
     local val = tonumber(SensBox.Text)
     if val then
-        Config.Sensitivity = math.clamp(val, 0.1, 10.0)
+        Config.Sensitivity = math.max(0.01, val)
         SensBox.Text = tostring(Config.Sensitivity)
     else
         SensBox.Text = tostring(Config.Sensitivity)
     end
 end)
 
--- Toggle Animation Binding Helper
 local function bindToggle(trackButton, configKey)
     local state = false
     trackButton.MouseButton1Click:Connect(function()
@@ -353,7 +371,6 @@ end
 bindToggle(AutoTrack, "AutoShoot")
 bindToggle(AimTrack, "AimAssist")
 
--- Spectator Hook
 local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
 if remotesFolder then
     local startSpectatingRemote = remotesFolder:FindFirstChild("StartSpectating")
@@ -368,7 +385,6 @@ LocalPlayer.CharacterAdded:Connect(function()
     State.IsSpectating = false
 end)
 
--- Character Helper
 local function getCharacterFromInstance(instance)
     local current = instance
     while current and current ~= workspace do
@@ -380,7 +396,6 @@ local function getCharacterFromInstance(instance)
     return nil
 end
 
--- Wallcheck Helper
 local function isVisible(targetPart, targetChar)
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
@@ -400,8 +415,9 @@ local function isVisible(targetPart, targetChar)
     end
     return true
 end
-
--- Fire Logic (Reload + Remotes)
+-- =================================================================
+-- PART 4: Combat Firing Logic, Wallcheck, and RunService Loop
+-- =================================================================
 local function fireAt(targetPart)
     local ClientRemotes = LocalPlayer:FindFirstChild("ClientRemotes")
     local ModuleScripts = ReplicatedStorage:FindFirstChild("ModuleScripts")
@@ -464,7 +480,6 @@ local function fireAt(targetPart)
     end)
 end
 
--- Core RunService Loop
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 raycastParams.IgnoreWater = true
@@ -484,7 +499,7 @@ RunService.RenderStepped:Connect(function()
         return 
     end
 
-    -- Soft Aim Assist Processor (Gentle Magnetic Pull + Wallcheck)
+    -- Soft Aim Assist Processor
     if Config.AimAssist then
         local closestTarget = nil
         local shortestDist = math.huge
@@ -514,8 +529,7 @@ RunService.RenderStepped:Connect(function()
         
         if closestTarget then
             local targetCF = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
-            -- Gentle pull factor allowing easy manual camera override
-            local smoothFactor = math.clamp(0.02 * Config.Sensitivity, 0.005, 0.06)
+            local smoothFactor = math.clamp(0.02 * Config.Sensitivity, 0.005, 1.0)
             Camera.CFrame = Camera.CFrame:Lerp(targetCF, smoothFactor)
         end
     end
