@@ -1,36 +1,21 @@
 -- =================================================================
--- PROJECT NEXUS ELITE: PART 1 - Core, Services, and Theme Config
+-- NEXUS ELITE // SECTION 1: Core, Theme & Window Setup
 -- =================================================================
-local Core = {}
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
-Core.Services = {
-    CoreGui = game:GetService("CoreGui"),
-    Players = game:GetService("Players"),
-    ReplicatedStorage = game:GetService("ReplicatedStorage"),
-    RunService = game:GetService("RunService"),
-    UserInputService = game:GetService("UserInputService"),
-    TweenService = game:GetService("TweenService"),
-    HttpService = game:GetService("HttpService")
-}
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-Core.Players = Core.Services.Players
-Core.LocalPlayer = Core.Players.LocalPlayer
-Core.Camera = workspace.CurrentCamera
+if CoreGui:FindFirstChild("NexusEliteFramework") then
+    CoreGui.NexusEliteFramework:Destroy()
+end
 
--- Global Theme & Color Configuration
-Core.Theme = {
-    Background = Color3.fromRGB(18, 10, 10), -- Dark rich contrast inner color
-    InnerCard = Color3.fromRGB(26, 14, 14),
-    TextPrimary = Color3.fromRGB(255, 255, 255),
-    TextSecondary = Color3.fromRGB(200, 180, 180),
-    AccentRed = Color3.fromRGB(255, 50, 50),
-    AccentOrange = Color3.fromRGB(255, 140, 0),
-    AccentWhite = Color3.fromRGB(255, 255, 255),
-    ScrollbarColor = Color3.fromRGB(255, 255, 255)
-}
-
--- User Config Settings
-Core.Config = {
+local Config = {
     AutoShoot = false,
     AimAssist = false,
     Sensitivity = 1.0,
@@ -39,8 +24,7 @@ Core.Config = {
     AimFOV = 180
 }
 
--- Runtime State Tracking
-Core.State = {
+local State = {
     IsSpectating = false,
     LastShotTime = 0,
     IsOpen = true,
@@ -49,651 +33,593 @@ Core.State = {
     ClosedSize = UDim2.new(0, 44, 0, 44)
 }
 
-return Core
--- =================================================================
--- PROJECT NEXUS ELITE: PART 2 - Window Frame & Animated Stroke
--- =================================================================
-local Core = require(script.Parent.Part1_Core)
-local S = Core.Services
-local UI = {}
+local Theme = {
+    Background = Color3.fromRGB(18, 10, 10),
+    InnerCard = Color3.fromRGB(26, 14, 14),
+    TextPrimary = Color3.fromRGB(255, 255, 255),
+    TextSecondary = Color3.fromRGB(200, 180, 180),
+    AccentRed = Color3.fromRGB(255, 50, 50),
+    AccentOrange = Color3.fromRGB(255, 140, 0),
+    AccentWhite = Color3.fromRGB(255, 255, 255)
+}
 
-function UI.InitializeWindow()
-    if S.CoreGui:FindFirstChild("NexusEliteFramework") then
-        S.CoreGui.NexusEliteFramework:Destroy()
-    end
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NexusEliteFramework"
+ScreenGui.ResetOnSpawn = false
 
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "NexusEliteFramework"
-    ScreenGui.ResetOnSpawn = false
-
-    if gethui then
-        ScreenGui.Parent = gethui()
-    elseif syn and syn.protect_gui then
-        syn.protect_gui(ScreenGui)
-        ScreenGui.Parent = S.CoreGui
-    else
-        ScreenGui.Parent = S.CoreGui
-    end
-
-    -- Main Window Bevel Frame
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = Core.State.OriginalSize
-    MainFrame.Position = Core.State.OriginalPosition
-    MainFrame.BackgroundColor3 = Core.Theme.Background
-    MainFrame.BorderSizePixel = 0
-    MainFrame.ClipsDescendants = true
-    MainFrame.Parent = ScreenGui
-
-    local MainCorner = Instance.new("UICorner")
-    MainCorner.CornerRadius = UDim.new(0, 16)
-    MainCorner.Parent = MainFrame
-
-    -- UIStroke with Red, Orange, White Gradient
-    local MainStroke = Instance.new("UIStroke")
-    MainStroke.Name = "AnimatedStroke"
-    MainStroke.Thickness = 2.5
-    MainStroke.Parent = MainFrame
-
-    local StrokeGradient = Instance.new("UIGradient")
-    StrokeGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Core.Theme.AccentRed),
-        ColorSequenceKeypoint.new(0.5, Core.Theme.AccentOrange),
-        ColorSequenceKeypoint.new(1, Core.Theme.AccentWhite),
-        ColorSequenceKeypoint.new(0.8, Core.Theme.AccentOrange),
-        ColorSequenceKeypoint.new(1, Core.Theme.AccentRed)
-    })
-    StrokeGradient.Rotation = 45
-    StrokeGradient.Parent = MainStroke
-
-    -- Continual Gradient Flow Animation Loop
-    task.spawn(function()
-        while true do
-            StrokeGradient.Rotation = (StrokeGradient.Rotation + 2) % 360
-            task.wait(0.03)
-        end
-    end)
-
-    -- Title Bar
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Name = "TitleBar"
-    TitleBar.Size = UDim2.new(1, 0, 0, 44)
-    TitleBar.BackgroundColor3 = Color3.fromRGB(22, 12, 12)
-    TitleBar.BorderSizePixel = 0
-    TitleBar.Parent = MainFrame
-
-    local TitleCorner = Instance.new("UICorner")
-    TitleCorner.CornerRadius = UDim.new(0, 16)
-    TitleCorner.Parent = TitleBar
-
-    local TitleFix = Instance.new("Frame")
-    TitleFix.Size = UDim2.new(1, 0, 0, 10)
-    TitleFix.Position = UDim2.new(0, 0, 1, -10)
-    TitleFix.BackgroundColor3 = Color3.fromRGB(22, 12, 12)
-    TitleFix.BorderSizePixel = 0
-    TitleFix.Parent = TitleBar
-
-    -- Gear Icon Button (Clickable when closed to reopen)
-    local GearIcon = Instance.new("TextButton")
-    GearIcon.Name = "GearIcon"
-    GearIcon.Size = UDim2.new(0, 30, 1, 0)
-    GearIcon.Position = UDim2.new(0, 7, 0, 0)
-    GearIcon.BackgroundTransparency = 1
-    GearIcon.Text = "⚙️"
-    GearIcon.TextColor3 = Core.Theme.TextPrimary
-    GearIcon.TextSize = 16
-    GearIcon.Font = Enum.Font.GothamBold
-    GearIcon.AutoButtonColor = false
-    GearIcon.Parent = TitleBar
-
-    local TitleText = Instance.new("TextLabel")
-    TitleText.Name = "TitleText"
-    TitleText.Size = UDim2.new(1, -85, 1, 0)
-    TitleText.Position = UDim2.new(0, 45, 0, 0)
-    TitleText.BackgroundTransparency = 1
-    TitleText.Text = "NEXUS // ULTIMATE SUITE"
-    TitleText.TextColor3 = Core.Theme.TextPrimary
-    TitleText.TextSize = 12
-    TitleText.Font = Enum.Font.GothamBold
-    TitleText.TextXAlignment = Enum.TextXAlignment.Left
-    TitleText.Parent = TitleBar
-
-    local MinBtn = Instance.new("TextButton")
-    MinBtn.Name = "MinBtn"
-    MinBtn.Size = UDim2.new(0, 30, 0, 30)
-    MinBtn.Position = UDim2.new(1, -38, 0.5, -15)
-    MinBtn.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
-    MinBtn.Text = "-"
-    MinBtn.TextColor3 = Core.Theme.TextSecondary
-    MinBtn.TextSize = 16
-    MinBtn.Font = Enum.Font.GothamBold
-    MinBtn.AutoButtonColor = false
-    MinBtn.Parent = TitleBar
-
-    local MinCorner = Instance.new("UICorner")
-    MinCorner.CornerRadius = UDim.new(0, 8)
-    MinCorner.Parent = MinBtn
-
-    -- Draggable Logic (Works even when closed because TitleBar is active)
-    local dragging, dragInput, dragStart, startPos
-    TitleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-
-    TitleBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    S.UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            Core.State.OriginalPosition = MainFrame.Position
-        end
-    end)
-
-    return ScreenGui, MainFrame, GearIcon, TitleText, MinBtn, TitleBar
+if gethui then
+    ScreenGui.Parent = gethui()
+elseif syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+else
+    ScreenGui.Parent = CoreGui
 end
 
-return UI
--- =================================================================
--- PROJECT NEXUS ELITE: PART 3 - Rayfield Categories & Elements
--- =================================================================
-local Core = require(script.Parent.Part1_Core)
-local UIBuilder = {}
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = State.OriginalSize
+MainFrame.Position = State.OriginalPosition
+MainFrame.BackgroundColor3 = Theme.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
 
-function UIBuilder.BuildElements(MainFrame)
-    -- Scrollable Container with Custom Scrollbar (White, 0.5 Transparency)
-    local Container = Instance.new("ScrollingFrame")
-    Container.Name = "Container"
-    Container.Size = UDim2.new(1, -24, 1, -56)
-    Container.Position = UDim2.new(0, 12, 0, 50)
-    Container.BackgroundTransparency = 1
-    Container.BorderSizePixel = 0
-    Container.CanvasSize = UDim2.new(0, 0, 0, 380)
-    Container.ScrollBarThickness = 3
-    Container.ScrollBarImageColor3 = Core.Theme.ScrollbarColor
-    Container.ScrollBarImageTransparency = 0.5
-    Container.Parent = MainFrame
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 16)
+MainCorner.Parent = MainFrame
 
-    local UIListLayout = Instance.new("UIListLayout")
-    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    UIListLayout.Padding = UDim.new(0, 8)
-    UIListLayout.Parent = Container
+-- Animated Gradient UIStroke (Red, Orange, White)
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Name = "AnimatedStroke"
+MainStroke.Thickness = 2.5
+MainStroke.Parent = MainFrame
 
-    local function createSectionLabel(text)
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 24)
-        label.BackgroundTransparency = 1
-        label.Text = text
-        label.TextColor3 = Core.Theme.AccentOrange
-        label.TextSize = 11
-        label.Font = Enum.Font.GothamBold
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = Container
-        return label
+local StrokeGradient = Instance.new("UIGradient")
+StrokeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Theme.AccentRed),
+    ColorSequenceKeypoint.new(0.5, Theme.AccentOrange),
+    ColorSequenceKeypoint.new(1, Theme.AccentWhite),
+    ColorSequenceKeypoint.new(0.8, Theme.AccentOrange),
+    ColorSequenceKeypoint.new(1, Theme.AccentRed)
+})
+StrokeGradient.Rotation = 45
+StrokeGradient.Parent = MainStroke
+
+task.spawn(function()
+    while true do
+        StrokeGradient.Rotation = (StrokeGradient.Rotation + 2) % 360
+        task.wait(0.03)
     end
+end)
 
-    local function createCard(height)
-        local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, 0, 0, height)
-        card.BackgroundColor3 = Core.Theme.InnerCard
-        card.BorderSizePixel = 0
-        card.Parent = Container
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 44)
+TitleBar.BackgroundColor3 = Color3.fromRGB(22, 12, 12)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
 
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 10)
-        corner.Parent = card
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 16)
+TitleCorner.Parent = TitleBar
 
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = Color3.fromRGB(50, 25, 25)
-        stroke.Thickness = 1
-        stroke.Parent = card
-        
-        return card
+local TitleFix = Instance.new("Frame")
+TitleFix.Size = UDim2.new(1, 0, 0, 10)
+TitleFix.Position = UDim2.new(0, 0, 1, -10)
+TitleFix.BackgroundColor3 = Color3.fromRGB(22, 12, 12)
+TitleFix.BorderSizePixel = 0
+TitleFix.Parent = TitleBar
+
+local GearIcon = Instance.new("TextButton")
+GearIcon.Name = "GearIcon"
+GearIcon.Size = UDim2.new(0, 30, 1, 0)
+GearIcon.Position = UDim2.new(0, 7, 0, 0)
+GearIcon.BackgroundTransparency = 1
+GearIcon.Text = "⚙️"
+GearIcon.TextColor3 = Theme.TextPrimary
+GearIcon.TextSize = 16
+GearIcon.Font = Enum.Font.GothamBold
+GearIcon.AutoButtonColor = false
+GearIcon.Parent = TitleBar
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Name = "TitleText"
+TitleText.Size = UDim2.new(1, -85, 1, 0)
+TitleText.Position = UDim2.new(0, 45, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "NEXUS // ULTIMATE SUITE"
+TitleText.TextColor3 = Theme.TextPrimary
+TitleText.TextSize = 12
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Parent = TitleBar
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Name = "MinBtn"
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -38, 0.5, -15)
+MinBtn.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Theme.TextSecondary
+MinBtn.TextSize = 16
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.AutoButtonColor = false
+MinBtn.Parent = TitleBar
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 8)
+MinCorner.Parent = MinBtn
+
+local dragging, dragInput, dragStart, startPos
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
     end
+end)
 
-    -- Category 1: Combat & Triggerbot
-    createSectionLabel("  // COMBAT & TRIGGERBOT")
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
 
-    local AutoCard = createCard(46)
-    local AutoLabel = Instance.new("TextLabel")
-    AutoLabel.Size = UDim2.new(1, -70, 1, 0)
-    AutoLabel.Position = UDim2.new(0, 12, 0, 0)
-    AutoLabel.BackgroundTransparency = 1
-    AutoLabel.Text = "🎯 Auto-Shoot Triggerbot"
-    AutoLabel.TextColor3 = Core.Theme.TextPrimary
-    AutoLabel.TextSize = 12
-    AutoLabel.Font = Enum.Font.GothamMedium
-    AutoLabel.TextXAlignment = Enum.TextXAlignment.Left
-    AutoLabel.Parent = AutoCard
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        State.OriginalPosition = MainFrame.Position
+    end
+end)
+-- =================================================================
+-- NEXUS ELITE // SECTION 2: Rayfield Categories & UI Elements
+-- =================================================================
+local Container = Instance.new("ScrollingFrame")
+Container.Name = "Container"
+Container.Size = UDim2.new(1, -24, 1, -56)
+Container.Position = UDim2.new(0, 12, 0, 50)
+Container.BackgroundTransparency = 1
+Container.BorderSizePixel = 0
+Container.CanvasSize = UDim2.new(0, 0, 0, 380)
+Container.ScrollBarThickness = 3
+Container.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+Container.ScrollBarImageTransparency = 0.5
+Container.Parent = MainFrame
 
-    local AutoTrack = Instance.new("TextButton")
-    AutoTrack.Size = UDim2.new(0, 42, 0, 22)
-    AutoTrack.Position = UDim2.new(1, -52, 0.5, -11)
-    AutoTrack.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
-    AutoTrack.Text = ""
-    AutoTrack.AutoButtonColor = false
-    AutoTrack.Parent = AutoCard
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.Parent = Container
 
-    local AutoTrackCorner = Instance.new("UICorner")
-    AutoTrackCorner.CornerRadius = UDim.new(1, 0)
-    AutoTrackCorner.Parent = AutoTrack
-
-    local AutoKnob = Instance.new("Frame")
-    AutoKnob.Size = UDim2.new(0, 16, 0, 16)
-    AutoKnob.Position = UDim2.new(0, 3, 0.5, -8)
-    AutoKnob.BackgroundColor3 = Color3.fromRGB(160, 130, 130)
-    AutoKnob.Parent = AutoTrack
-
-    local AutoKnobCorner = Instance.new("UICorner")
-    AutoKnobCorner.CornerRadius = UDim.new(1, 0)
-    AutoKnobCorner.Parent = AutoKnob
-
-    -- Category 2: Aim Assist & Wallcheck
-    createSectionLabel("  // AIM ASSIST & TARGETING")
-
-    local AimCard = createCard(46)
-    local AimLabel = Instance.new("TextLabel")
-    AimLabel.Size = UDim2.new(1, -70, 1, 0)
-    AimLabel.Position = UDim2.new(0, 12, 0, 0)
-    AimLabel.BackgroundTransparency = 1
-    AimLabel.Text = "👁️ Soft Aim Assist + Wallcheck"
-    AimLabel.TextColor3 = Core.Theme.TextPrimary
-    AimLabel.TextSize = 12
-    AimLabel.Font = Enum.Font.GothamMedium
-    AimLabel.TextXAlignment = Enum.TextXAlignment.Left
-    AimLabel.Parent = AimCard
-
-    local AimTrack = Instance.new("TextButton")
-    AimTrack.Size = UDim2.new(0, 42, 0, 22)
-    AimTrack.Position = UDim2.new(1, -52, 0.5, -11)
-    AimTrack.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
-    AimTrack.Text = ""
-    AimTrack.AutoButtonColor = false
-    AimTrack.Parent = AimCard
-
-    local AimTrackCorner = Instance.new("UICorner")
-    AimTrackCorner.CornerRadius = UDim.new(1, 0)
-    AimTrackCorner.Parent = AimTrack
-
-    local AimKnob = Instance.new("Frame")
-    AimKnob.Size = UDim2.new(0, 16, 0, 16)
-    AimKnob.Position = UDim2.new(0, 3, 0.5, -8)
-    AimKnob.BackgroundColor3 = Color3.fromRGB(160, 130, 130)
-    AimKnob.Parent = AimTrack
-
-    local AimKnobCorner = Instance.new("UICorner")
-    AimKnobCorner.CornerRadius = UDim.new(1, 0)
-    AimKnobCorner.Parent = AimKnob
-
-    -- Category 3: Settings & Sensitivity
-    createSectionLabel("  // SENSITIVITY & CONFIG")
-
-    local SensCard = createCard(46)
-    local SensLabel = Instance.new("TextLabel")
-    SensLabel.Size = UDim2.new(1, -85, 1, 0)
-    SensLabel.Position = UDim2.new(0, 12, 0, 0)
-    SensLabel.BackgroundTransparency = 1
-    SensLabel.Text = "⚙️ Camera Sensitivity (Uncapped)"
-    SensLabel.TextColor3 = Core.Theme.TextPrimary
-    SensLabel.TextSize = 12
-    SensLabel.Font = Enum.Font.GothamMedium
-    SensLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SensLabel.Parent = SensCard
-
-    local SensBox = Instance.new("TextBox")
-    SensBox.Size = UDim2.new(0, 60, 0, 26)
-    SensBox.Position = UDim2.new(1, -70, 0.5, -13)
-    SensBox.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
-    SensBox.Text = "1.0"
-    SensBox.TextColor3 = Core.Theme.TextPrimary
-    SensBox.TextSize = 12
-    SensBox.Font = Enum.Font.GothamBold
-    SensBox.ClearTextOnFocus = false
-    SensBox.Parent = SensCard
-
-    local SensBoxCorner = Instance.new("UICorner")
-    SensBoxCorner.CornerRadius = UDim.new(0, 6)
-    SensBoxCorner.Parent = SensBox
-
-    local SensBoxStroke = Instance.new("UIStroke")
-    SensBoxStroke.Color = Color3.fromRGB(60, 30, 30)
-    SensBoxStroke.Thickness = 1
-    SensBoxStroke.Parent = SensBox
-
-    -- Status Section
-    createSectionLabel("  // STATUS MONITOR")
-
-    local StatusCard = createCard(38)
-    local StatusText = Instance.new("TextLabel")
-    StatusText.Name = "StatusText"
-    StatusText.Size = UDim2.new(1, -16, 1, 0)
-    StatusText.Position = UDim2.new(0, 12, 0, 0)
-    StatusText.BackgroundTransparency = 1
-    StatusText.Text = "● Status: Operational"
-    StatusText.TextColor3 = Color3.fromRGB(0, 229, 140)
-    StatusText.Font = Enum.Font.Gotham
-    StatusText.TextSize = 11
-    StatusText.TextXAlignment = Enum.TextXAlignment.Left
-    StatusText.Parent = StatusCard
-
-    return Container, AutoTrack, AimTrack, SensBox, StatusText
+local function createSectionLabel(text)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 24)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Theme.AccentOrange
+    label.TextSize = 11
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = Container
+    return label
 end
 
-return UIBuilder
+local function createCard(height)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, height)
+    card.BackgroundColor3 = Theme.InnerCard
+    card.BorderSizePixel = 0
+    card.Parent = Container
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = card
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(50, 25, 25)
+    stroke.Thickness = 1
+    stroke.Parent = card
+    
+    return card
+end
+
+-- Category 1: Combat & Triggerbot
+createSectionLabel("  // COMBAT & TRIGGERBOT")
+local AutoCard = createCard(46)
+local AutoLabel = Instance.new("TextLabel")
+AutoLabel.Size = UDim2.new(1, -70, 1, 0)
+AutoLabel.Position = UDim2.new(0, 12, 0, 0)
+AutoLabel.BackgroundTransparency = 1
+AutoLabel.Text = "🎯 Auto-Shoot Triggerbot"
+AutoLabel.TextColor3 = Theme.TextPrimary
+AutoLabel.TextSize = 12
+AutoLabel.Font = Enum.Font.GothamMedium
+AutoLabel.TextXAlignment = Enum.TextXAlignment.Left
+AutoLabel.Parent = AutoCard
+
+local AutoTrack = Instance.new("TextButton")
+AutoTrack.Size = UDim2.new(0, 42, 0, 22)
+AutoTrack.Position = UDim2.new(1, -52, 0.5, -11)
+AutoTrack.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
+AutoTrack.Text = ""
+AutoTrack.AutoButtonColor = false
+AutoTrack.Parent = AutoCard
+
+local AutoTrackCorner = Instance.new("UICorner")
+AutoTrackCorner.CornerRadius = UDim.new(1, 0)
+AutoTrackCorner.Parent = AutoTrack
+
+local AutoKnob = Instance.new("Frame")
+AutoKnob.Size = UDim2.new(0, 16, 0, 16)
+AutoKnob.Position = UDim2.new(0, 3, 0.5, -8)
+AutoKnob.BackgroundColor3 = Color3.fromRGB(160, 130, 130)
+AutoKnob.Parent = AutoTrack
+
+local AutoKnobCorner = Instance.new("UICorner")
+AutoKnobCorner.CornerRadius = UDim.new(1, 0)
+AutoKnobCorner.Parent = AutoKnob
+
+-- Category 2: Aim Assist & Targeting
+createSectionLabel("  // AIM ASSIST & TARGETING")
+local AimCard = createCard(46)
+local AimLabel = Instance.new("TextLabel")
+AimLabel.Size = UDim2.new(1, -70, 1, 0)
+AimLabel.Position = UDim2.new(0, 12, 0, 0)
+AimLabel.BackgroundTransparency = 1
+AimLabel.Text = "👁️ Soft Aim Assist + Wallcheck"
+AimLabel.TextColor3 = Theme.TextPrimary
+AimLabel.TextSize = 12
+AimLabel.Font = Enum.Font.GothamMedium
+AimLabel.TextXAlignment = Enum.TextXAlignment.Left
+AimLabel.Parent = AimCard
+
+local AimTrack = Instance.new("TextButton")
+AimTrack.Size = UDim2.new(0, 42, 0, 22)
+AimTrack.Position = UDim2.new(1, -52, 0.5, -11)
+AimTrack.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
+AimTrack.Text = ""
+AimTrack.AutoButtonColor = false
+AimTrack.Parent = AimCard
+
+local AimTrackCorner = Instance.new("UICorner")
+AimTrackCorner.CornerRadius = UDim.new(1, 0)
+AimTrackCorner.Parent = AimTrack
+
+local AimKnob = Instance.new("Frame")
+AimKnob.Size = UDim2.new(0, 16, 0, 16)
+AimKnob.Position = UDim2.new(0, 3, 0.5, -8)
+AimKnob.BackgroundColor3 = Color3.fromRGB(160, 130, 130)
+AimKnob.Parent = AimTrack
+
+local AimKnobCorner = Instance.new("UICorner")
+AimKnobCorner.CornerRadius = UDim.new(1, 0)
+AimKnobCorner.Parent = AimKnob
+
+-- Category 3: Sensitivity & Config
+createSectionLabel("  // SENSITIVITY & CONFIG")
+local SensCard = createCard(46)
+local SensLabel = Instance.new("TextLabel")
+SensLabel.Size = UDim2.new(1, -85, 1, 0)
+SensLabel.Position = UDim2.new(0, 12, 0, 0)
+SensLabel.BackgroundTransparency = 1
+SensLabel.Text = "⚙️ Camera Sensitivity (Uncapped)"
+SensLabel.TextColor3 = Theme.TextPrimary
+SensLabel.TextSize = 12
+SensLabel.Font = Enum.Font.GothamMedium
+SensLabel.TextXAlignment = Enum.TextXAlignment.Left
+SensLabel.Parent = SensCard
+
+local SensBox = Instance.new("TextBox")
+SensBox.Size = UDim2.new(0, 60, 0, 26)
+SensBox.Position = UDim2.new(1, -70, 0.5, -13)
+SensBox.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
+SensBox.Text = "1.0"
+SensBox.TextColor3 = Theme.TextPrimary
+SensBox.TextSize = 12
+SensBox.Font = Enum.Font.GothamBold
+SensBox.ClearTextOnFocus = false
+SensBox.Parent = SensCard
+
+local SensBoxCorner = Instance.new("UICorner")
+SensBoxCorner.CornerRadius = UDim.new(0, 6)
+SensBoxCorner.Parent = SensBox
+
+local SensBoxStroke = Instance.new("UIStroke")
+SensBoxStroke.Color = Color3.fromRGB(60, 30, 30)
+SensBoxStroke.Thickness = 1
+SensBoxStroke.Parent = SensBox
+
+-- Category 4: Status Monitor
+createSectionLabel("  // STATUS MONITOR")
+local StatusCard = createCard(38)
+local StatusText = Instance.new("TextLabel")
+StatusText.Name = "StatusText"
+StatusText.Size = UDim2.new(1, -16, 1, 0)
+StatusText.Position = UDim2.new(0, 12, 0, 0)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "● Status: Operational"
+StatusText.TextColor3 = Color3.fromRGB(0, 229, 140)
+StatusText.Font = Enum.Font.Gotham
+StatusText.TextSize = 11
+StatusText.TextXAlignment = Enum.TextXAlignment.Left
+StatusText.Parent = StatusCard
 -- =================================================================
--- PROJECT NEXUS ELITE: PART 4 - Precise Close/Open Animations
+-- NEXUS ELITE // SECTION 3: Precise Up-then-Left Animations & Toggles
 -- =================================================================
-local Core = require(script.Parent.Part1_Core)
-local S = Core.Services
-local AnimController = {}
-
-function AnimController.BindAnimations(MainFrame, GearIcon, TitleText, MinBtn, Container)
-    local originalSize = Core.State.OriginalSize
-    local closedSize = Core.State.ClosedSize
-
-    local function toggleOpenClose()
-        Core.State.IsOpen = not Core.State.IsOpen
-        local currentPos = MainFrame.Position
-        
-        if not Core.State.IsOpen then
-            -- 1. Instantly hide text and content
-            Container.Visible = false
-            TitleText.Visible = false
-            MinBtn.Visible = false
-            
-            -- 2. Move UP slightly first
-            local upPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset, currentPos.Y.Scale, currentPos.Y.Offset - 40)
-            local tweenUp = S.TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = upPos})
-            tweenUp:Play()
-            tweenUp.Completed:Wait()
-            
-            -- 3. Slide LEFT while spinning gear & shrinking to bevel box
-            local leftPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset - 120, currentPos.Y.Scale, currentPos.Y.Offset - 40)
-            local tweenSlide = S.TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Position = leftPos,
-                Size = closedSize
-            })
-            local tweenGear = S.TweenService:Create(GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Rotation = GearIcon.Rotation - 360
-            })
-            tweenSlide:Play()
-            tweenGear:Play()
-        else
-            -- Reverse: Expand back out to original position and size
-            local tweenExpand = S.TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Position = Core.State.OriginalPosition,
-                Size = originalSize
-            })
-            local tweenGear = S.TweenService:Create(GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Rotation = 0
-            })
-            tweenExpand:Play()
-            tweenGear:Play()
-            
-            tweenExpand.Completed:Wait()
-            Container.Visible = true
-            TitleText.Visible = true
-            MinBtn.Visible = true
-            MinBtn.Text = "-"
-        end
-    end
-
-    GearIcon.MouseButton1Click:Connect(toggleOpenClose)
-    MinBtn.MouseButton1Click:Connect(toggleOpenClose)
-
-    -- Startup Opening Animation
-    task.spawn(function()
-        MainFrame.Size = closedSize
+local function toggleOpenClose()
+    State.IsOpen = not State.IsOpen
+    local currentPos = MainFrame.Position
+    
+    if not State.IsOpen then
         Container.Visible = false
         TitleText.Visible = false
         MinBtn.Visible = false
-        GearIcon.Rotation = -360
-        task.wait(0.2)
         
-        Core.State.IsOpen = true
+        local upPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset, currentPos.Y.Scale, currentPos.Y.Offset - 40)
+        local tweenUp = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = upPos})
+        tweenUp:Play()
+        tweenUp.Completed:Wait()
+        
+        local leftPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset - 120, currentPos.Y.Scale, currentPos.Y.Offset - 40)
+        local tweenSlide = TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Position = leftPos,
+            Size = State.ClosedSize
+        })
+        local tweenGear = TweenService:Create(GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Rotation = GearIcon.Rotation - 360
+        })
+        tweenSlide:Play()
+        tweenGear:Play()
+    else
+        local tweenExpand = TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Position = State.OriginalPosition,
+            Size = State.OriginalSize
+        })
+        local tweenGear = TweenService:Create(GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Rotation = 0
+        })
+        tweenExpand:Play()
+        tweenGear:Play()
+        
+        tweenExpand.Completed:Wait()
         Container.Visible = true
         TitleText.Visible = true
         MinBtn.Visible = true
         MinBtn.Text = "-"
+    end
+end
+
+GearIcon.MouseButton1Click:Connect(toggleOpenClose)
+MinBtn.MouseButton1Click:Connect(toggleOpenClose)
+
+-- Startup Animation
+task.spawn(function()
+    MainFrame.Size = State.ClosedSize
+    Container.Visible = false
+    TitleText.Visible = false
+    MinBtn.Visible = false
+    GearIcon.Rotation = -360
+    task.wait(0.2)
+    
+    State.IsOpen = true
+    Container.Visible = true
+    TitleText.Visible = true
+    MinBtn.Visible = true
+    MinBtn.Text = "-"
+    
+    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = State.OriginalSize}):Play()
+    TweenService:Create(GearIcon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0}):Play()
+end)
+
+SensBox.FocusLost:Connect(function()
+    local val = tonumber(SensBox.Text)
+    if val then
+        Config.Sensitivity = math.max(0.01, val)
+        SensBox.Text = tostring(Config.Sensitivity)
+    else
+        SensBox.Text = tostring(Config.Sensitivity)
+    end
+end)
+
+local function bindToggle(trackButton, configKey)
+    local state = false
+    trackButton.MouseButton1Click:Connect(function()
+        state = not state
+        Config[configKey] = state
         
-        S.TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = originalSize}):Play()
-        S.TweenService:Create(GearIcon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0}):Play()
+        local knob = trackButton:FindFirstChildOfClass("Frame")
+        local knobGoal = {}
+        local trackGoal = {}
+        local knobColorGoal = {}
+        
+        if state then
+            knobGoal.Position = UDim2.new(1, -19, 0.5, -8)
+            trackGoal.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+            knobColorGoal.BackgroundColor3 = Theme.TextPrimary
+        else
+            knobGoal.Position = UDim2.new(0, 3, 0.5, -8)
+            trackGoal.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
+            knobColorGoal.BackgroundColor3 = Color3.fromRGB(160, 130, 130)
+        end
+        
+        if knob then
+            TweenService:Create(knob, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), knobGoal):Play()
+            TweenService:Create(knob, TweenInfo.new(0.2), knobColorGoal):Play()
+        end
+        TweenService:Create(trackButton, TweenInfo.new(0.2), trackGoal):Play()
     end)
 end
 
-return AnimController
+bindToggle(AutoTrack, "AutoShoot")
+bindToggle(AimTrack, "AimAssist")
 -- =================================================================
--- PROJECT NEXUS ELITE: PART 5 - Combat Engine, Wallcheck & Loop
+-- NEXUS ELITE // SECTION 4: Combat Engine, Wallcheck & Loop
 -- =================================================================
-local Core = require(script.Parent.Part1_Core)
-local S = Core.Services
-local Combat = {}
-
-function Combat.Initialize(AutoTrack, AimTrack, SensBox, StatusText)
-    -- Sensitivity Input Handling
-    SensBox.FocusLost:Connect(function()
-        local val = tonumber(SensBox.Text)
-        if val then
-            Core.Config.Sensitivity = math.max(0.01, val)
-            SensBox.Text = tostring(Core.Config.Sensitivity)
-        else
-            SensBox.Text = tostring(Core.Config.Sensitivity)
-        end
-    end)
-
-    -- Toggle Binding Helper
-    local function bindToggle(trackButton, configKey)
-        local state = false
-        trackButton.MouseButton1Click:Connect(function()
-            state = not state
-            Core.Config[configKey] = state
-            
-            local knob = trackButton:FindFirstChildOfClass("Frame")
-            local knobGoal = {}
-            local trackGoal = {}
-            local knobColorGoal = {}
-            
-            if state then
-                knobGoal.Position = UDim2.new(1, -19, 0.5, -8)
-                trackGoal.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-                knobColorGoal.BackgroundColor3 = Core.Theme.TextPrimary
-            else
-                knobGoal.Position = UDim2.new(0, 3, 0.5, -8)
-                trackGoal.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
-                knobColorGoal.BackgroundColor3 = Color3.fromRGB(160, 130, 130)
-            end
-            
-            if knob then
-                S.TweenService:Create(knob, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), knobGoal):Play()
-                S.TweenService:Create(knob, TweenInfo.new(0.2), knobColorGoal):Play()
-            end
-            S.TweenService:Create(trackButton, TweenInfo.new(0.2), trackGoal):Play()
+local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
+if remotesFolder then
+    local startSpectatingRemote = remotesFolder:FindFirstChild("StartSpectating")
+    if startSpectatingRemote then
+        startSpectatingRemote.OnClientEvent:Connect(function()
+            State.IsSpectating = true
         end)
     end
+end
 
-    bindToggle(AutoTrack, "AutoShoot")
-    bindToggle(AimTrack, "AimAssist")
+LocalPlayer.CharacterAdded:Connect(function()
+    State.IsSpectating = false
+end)
 
-    -- Spectator Check Hook
-    local remotesFolder = S.ReplicatedStorage:FindFirstChild("Remotes")
-    if remotesFolder then
-        local startSpectatingRemote = remotesFolder:FindFirstChild("StartSpectating")
-        if startSpectatingRemote then
-            startSpectatingRemote.OnClientEvent:Connect(function()
-                Core.State.IsSpectating = true
-            end)
+local function getCharacterFromInstance(instance)
+    local current = instance
+    while current and current ~= workspace do
+        if current:FindFirstChildOfClass("Humanoid") then
+            return current
         end
+        current = current.Parent
     end
+    return nil
+end
 
-    Core.LocalPlayer.CharacterAdded:Connect(function()
-        Core.State.IsSpectating = false
-    end)
-
-    local function getCharacterFromInstance(instance)
-        local current = instance
-        while current and current ~= workspace do
-            if current:FindFirstChildOfClass("Humanoid") then
-                return current
-            end
-            current = current.Parent
-        end
-        return nil
-    end
-
-    -- Wallcheck Helper
-    local function isVisible(targetPart, targetChar)
-        local origin = Core.Camera.CFrame.Position
-        local direction = targetPart.Position - origin
-        
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-        raycastParams.FilterDescendantsInstances = {Core.LocalPlayer.Character, targetChar}
-        raycastParams.IgnoreWater = true
-        
-        local result = workspace:Raycast(origin, direction, raycastParams)
-        if result then
-            local hitChar = getCharacterFromInstance(result.Instance)
-            if hitChar == targetChar then
-                return true
-            end
-            return false
-        end
-        return true
-    end
-
-    -- Remote Firing Sequence
-    local function fireAt(targetPart)
-        local ClientRemotes = Core.LocalPlayer:FindFirstChild("ClientRemotes")
-        local ModuleScripts = S.ReplicatedStorage:FindFirstChild("ModuleScripts")
-        if not ClientRemotes or not ModuleScripts then return end
-
-        local Reload = ClientRemotes:FindFirstChild("Reload")
-        local CheckFire = ClientRemotes:FindFirstChild("CheckFire")
-        local CheckShot = ClientRemotes:FindFirstChild("CheckShot")
-        local GunModules = ModuleScripts:FindFirstChild("GunModules")
-        local ProjectileFinished = GunModules and GunModules.Remote:FindFirstChild("ProjectileFinished")
-        local ProjectileRender = GunModules and GunModules.Remote:FindFirstChild("ProjectileRender")
-
-        if not (CheckFire and CheckShot and ProjectileFinished and ProjectileRender) then return end
-
-        local indexVal = tick() + math.random()
-        local originPos = Core.Camera.CFrame.Position
-        local hitPos = targetPart.Position
-
-        pcall(function()
-            if Reload then Reload:FireServer() end
-            CheckFire:FireServer(indexVal, originPos)
-
-            ProjectileRender:FireServer({
-                Type = "Bullet", Index = indexVal, Origin = originPos,
-                Owner = Core.LocalPlayer.Character, Endpoint = hitPos,
-                Life = 5, Force = 130, Gravity = 0, Wind = Vector3.new(0, 0, 0)
-            })
-
-            local cf = Core.Camera.CFrame
-            CheckShot:FireServer(0, 0, 1, 0.8, cf, hitPos, targetPart, 11, indexVal)
-
-            ProjectileFinished:FireServer({
-                Index = indexVal, Origin = originPos, CFrame = CFrame.new(hitPos),
-                ExpRadius = 15, LaserColor = Color3.new(1, 0, 0), LaserSpeed = 10,
-                LaserTime = 0.7, Effect = "Gib_T", ExpColor = Core.Theme.AccentOrange,
-                LaserTexture = "rbxassetid://4813348676", Explosive = false,
-                HitPlayer = true, IsLaser = false, LaserWidth = 3,
-                ExpSound = "rbxassetid://2814354338", LaserLength = 5, LaserEmission = 1
-            })
-        end)
-    end
-
+local function isVisible(targetPart, targetChar)
+    local origin = Camera.CFrame.Position
+    local direction = targetPart.Position - origin
+    
     local raycastParams = RaycastParams.new()
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
     raycastParams.IgnoreWater = true
-
-    -- Main Processing Loop
-    S.RunService.RenderStepped:Connect(function()
-        if Core.State.IsSpectating or (Core.LocalPlayer.PlayerGui:FindFirstChild("Sp")) then
-            StatusText.Text = "● Status: Spectating (Paused)"
-            StatusText.TextColor3 = Color3.fromRGB(255, 90, 90)
-            return
-        else
-            StatusText.Text = "● Status: Operational"
-            StatusText.TextColor3 = Color3.fromRGB(0, 229, 140)
+    
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    if result then
+        local hitChar = getCharacterFromInstance(result.Instance)
+        if hitChar == targetChar then
+            return true
         end
+        return false
+    end
+    return true
+end
 
-        local character = Core.LocalPlayer.Character
-        if not character or not character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("Humanoid").Health <= 0 then 
-            return 
-        end
+local function fireAt(targetPart)
+    local ClientRemotes = LocalPlayer:FindFirstChild("ClientRemotes")
+    local ModuleScripts = ReplicatedStorage:FindFirstChild("ModuleScripts")
+    if not ClientRemotes || not ModuleScripts then return end
 
-        -- Soft Aim Assist with Wallcheck
-        if Core.Config.AimAssist then
-            local closestTarget = nil
-            local shortestDist = math.huge
-            local mousePos = Vector2.new(Core.Camera.ViewportSize.X / 2, Core.Camera.ViewportSize.Y / 2)
-            
-            for _, player in ipairs(Core.Players:GetPlayers()) do
-                if player ~= Core.LocalPlayer and player.Character then
-                    local targetChar = player.Character
-                    local hum = targetChar:FindFirstChildOfClass("Humanoid")
-                    local head = targetChar:FindFirstChild("Head")
-                    
-                    if hum and hum.Health > 0 and head then
-                        local screenPos, onScreen = Core.Camera:WorldToViewportPoint(head.Position)
-                        if onScreen then
-                            local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                            
-                            if screenDist <= Core.Config.AimFOV and isVisible(head, targetChar) then
-                                if screenDist < shortestDist then
-                                    shortestDist = screenDist
-                                    closestTarget = head
-                                end
+    local Reload = ClientRemotes:FindFirstChild("Reload")
+    local CheckFire = ClientRemotes:FindFirstChild("CheckFire")
+    local CheckShot = ClientRemotes:FindFirstChild("CheckShot")
+    local GunModules = ModuleScripts:FindFirstChild("GunModules")
+    local ProjectileFinished = GunModules and GunModules.Remote:FindFirstChild("ProjectileFinished")
+    local ProjectileRender = GunModules and GunModules.Remote:FindFirstChild("ProjectileRender")
+
+    if not (CheckFire and CheckShot and ProjectileFinished and ProjectileRender) then return end
+
+    local indexVal = tick() + math.random()
+    local originPos = Camera.CFrame.Position
+    local hitPos = targetPart.Position
+
+    pcall(function()
+        if Reload then Reload:FireServer() end
+        CheckFire:FireServer(indexVal, originPos)
+
+        ProjectileRender:FireServer({
+            Type = "Bullet", Index = indexVal, Origin = originPos,
+            Owner = LocalPlayer.Character, Endpoint = hitPos,
+            Life = 5, Force = 130, Gravity = 0, Wind = Vector3.new(0, 0, 0)
+        })
+
+        local cf = Camera.CFrame
+        CheckShot:FireServer(0, 0, 1, 0.8, cf, hitPos, targetPart, 11, indexVal)
+
+        ProjectileFinished:FireServer({
+            Index = indexVal, Origin = originPos, CFrame = CFrame.new(hitPos),
+            ExpRadius = 15, LaserColor = Color3.new(1, 0, 0), LaserSpeed = 10,
+            LaserTime = 0.7, Effect = "Gib_T", ExpColor = Theme.AccentOrange,
+            LaserTexture = "rbxassetid://4813348676", Explosive = false,
+            HitPlayer = true, IsLaser = false, LaserWidth = 3,
+            ExpSound = "rbxassetid://2814354338", LaserLength = 5, LaserEmission = 1
+        })
+    end)
+end
+
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+raycastParams.IgnoreWater = true
+
+RunService.RenderStepped:Connect(function()
+    if State.IsSpectating or (LocalPlayer.PlayerGui:FindFirstChild("Sp")) then
+        StatusText.Text = "● Status: Spectating (Paused)"
+        StatusText.TextColor3 = Color3.fromRGB(255, 90, 90)
+        return
+    else
+        StatusText.Text = "● Status: Operational"
+        StatusText.TextColor3 = Color3.fromRGB(0, 229, 140)
+    end
+
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("Humanoid").Health <= 0 then 
+        return 
+    end
+
+    if Config.AimAssist then
+        local closestTarget = nil
+        local shortestDist = math.huge
+        local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local targetChar = player.Character
+                local hum = targetChar:FindFirstChildOfClass("Humanoid")
+                local head = targetChar:FindFirstChild("Head")
+                
+                if hum and hum.Health > 0 and head then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        
+                        if screenDist <= Config.AimFOV and isVisible(head, targetChar) then
+                            if screenDist < shortestDist then
+                                shortestDist = screenDist
+                                closestTarget = head
                             end
                         end
                     end
                 end
             end
-            
-            if closestTarget then
-                local targetCF = CFrame.new(Core.Camera.CFrame.Position, closestTarget.Position)
-                local smoothFactor = math.clamp(0.02 * Core.Config.Sensitivity, 0.005, 1.0)
-                Core.Camera.CFrame = Core.Camera.CFrame:Lerp(targetCF, smoothFactor)
+        end
+        
+        if closestTarget then
+            local targetCF = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
+            local smoothFactor = math.clamp(0.02 * Config.Sensitivity, 0.005, 1.0)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCF, smoothFactor)
+        end
+    end
+
+    if not Config.AutoShoot then return end
+    if tick() - State.LastShotTime < Config.FireCooldown then return end
+
+    raycastParams.FilterDescendantsInstances = {character}
+    local viewportRay = Camera:ViewportPointToRay(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local result = workspace:Raycast(viewportRay.Origin, viewportRay.Direction * Config.MaxDistance, raycastParams)
+
+    if result and result.Instance then
+        local hitInstance = result.Instance
+        local targetChar = getCharacterFromInstance(hitInstance)
+
+        if targetChar then
+            local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
+            local player = Players:GetPlayerFromCharacter(targetChar)
+
+            if humanoid and humanoid.Health > 0 and player and player ~= LocalPlayer then
+                State.LastShotTime = tick()
+                local targetPart = targetChar:FindFirstChild("Head") or targetChar:FindFirstChild("HumanoidRootPart") or hitInstance
+                fireAt(targetPart)
             end
         end
-
-        -- Auto-Shoot Triggerbot Loop
-        if not Core.Config.AutoShoot then return end
-        if tick() - Core.State.LastShotTime < Core.Config.FireCooldown then return end
-
-        raycastParams.FilterDescendantsInstances = {character}
-        local viewportRay = Core.Camera:ViewportPointToRay(Core.Camera.ViewportSize.X / 2, Core.Camera.ViewportSize.Y / 2)
-        local result = workspace:Raycast(viewportRay.Origin, viewportRay.Direction * Core.Config.MaxDistance, raycastParams)
-
-        if result and result.Instance then
-            local hitInstance = result.Instance
-            local targetChar = getCharacterFromInstance(hitInstance)
-
-            if targetChar then
-                local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
-                local player = Core.Players:GetPlayerFromCharacter(targetChar)
-
-                if humanoid and humanoid.Health > 0 and player and player ~= Core.LocalPlayer then
-                    Core.State.LastShotTime = tick()
-                    local targetPart = targetChar:FindFirstChild("Head") or targetChar:FindFirstChild("HumanoidRootPart") or hitInstance
-                    fireAt(targetPart)
-                end
-            end
-        end
-    end)
-end
-
-return Combat
+    end
+end)
