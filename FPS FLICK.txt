@@ -1,21 +1,22 @@
 -- =================================================================
--- NEXUS ELITE // SECTION 1: Core, Theme & Window Setup
+-- NEXUS ELITE // PART 1: UI & Window Setup (Run this first in Delta)
 -- =================================================================
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+getgenv().NexusSuite = getgenv().NexusSuite or {}
+local Core = getgenv().NexusSuite
 
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+Core.Services = {
+    CoreGui = game:GetService("CoreGui"),
+    Players = game:GetService("Players"),
+    ReplicatedStorage = game:GetService("ReplicatedStorage"),
+    RunService = game:GetService("RunService"),
+    UserInputService = game:GetService("UserInputService"),
+    TweenService = game:GetService("TweenService")
+}
 
-if CoreGui:FindFirstChild("NexusEliteFramework") then
-    CoreGui.NexusEliteFramework:Destroy()
-end
+Core.LocalPlayer = Core.Services.Players.LocalPlayer
+Core.Camera = workspace.CurrentCamera
 
-local Config = {
+Core.Config = {
     AutoShoot = false,
     AimAssist = false,
     Sensitivity = 1.0,
@@ -24,7 +25,7 @@ local Config = {
     AimFOV = 180
 }
 
-local State = {
+Core.State = {
     IsSpectating = false,
     LastShotTime = 0,
     IsOpen = true,
@@ -33,7 +34,7 @@ local State = {
     ClosedSize = UDim2.new(0, 44, 0, 44)
 }
 
-local Theme = {
+Core.Theme = {
     Background = Color3.fromRGB(18, 10, 10),
     InnerCard = Color3.fromRGB(26, 14, 14),
     TextPrimary = Color3.fromRGB(255, 255, 255),
@@ -43,6 +44,10 @@ local Theme = {
     AccentWhite = Color3.fromRGB(255, 255, 255)
 }
 
+if Core.Services.CoreGui:FindFirstChild("NexusEliteFramework") then
+    Core.Services.CoreGui.NexusEliteFramework:Destroy()
+end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NexusEliteFramework"
 ScreenGui.ResetOnSpawn = false
@@ -51,16 +56,16 @@ if gethui then
     ScreenGui.Parent = gethui()
 elseif syn and syn.protect_gui then
     syn.protect_gui(ScreenGui)
-    ScreenGui.Parent = CoreGui
+    ScreenGui.Parent = Core.Services.CoreGui
 else
-    ScreenGui.Parent = CoreGui
+    ScreenGui.Parent = Core.Services.CoreGui
 end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = State.OriginalSize
-MainFrame.Position = State.OriginalPosition
-MainFrame.BackgroundColor3 = Theme.Background
+MainFrame.Size = Core.State.OriginalSize
+MainFrame.Position = Core.State.OriginalPosition
+MainFrame.BackgroundColor3 = Core.Theme.Background
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
@@ -77,11 +82,11 @@ MainStroke.Parent = MainFrame
 
 local StrokeGradient = Instance.new("UIGradient")
 StrokeGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Theme.AccentRed),
-    ColorSequenceKeypoint.new(0.5, Theme.AccentOrange),
-    ColorSequenceKeypoint.new(1, Theme.AccentWhite),
-    ColorSequenceKeypoint.new(0.8, Theme.AccentOrange),
-    ColorSequenceKeypoint.new(1, Theme.AccentRed)
+    ColorSequenceKeypoint.new(0, Core.Theme.AccentRed),
+    ColorSequenceKeypoint.new(0.5, Core.Theme.AccentOrange),
+    ColorSequenceKeypoint.new(1, Core.Theme.AccentWhite),
+    ColorSequenceKeypoint.new(0.8, Core.Theme.AccentOrange),
+    ColorSequenceKeypoint.new(1, Core.Theme.AccentRed)
 })
 StrokeGradient.Rotation = 45
 StrokeGradient.Parent = MainStroke
@@ -117,7 +122,7 @@ GearIcon.Size = UDim2.new(0, 30, 1, 0)
 GearIcon.Position = UDim2.new(0, 7, 0, 0)
 GearIcon.BackgroundTransparency = 1
 GearIcon.Text = "⚙️"
-GearIcon.TextColor3 = Theme.TextPrimary
+GearIcon.TextColor3 = Core.Theme.TextPrimary
 GearIcon.TextSize = 16
 GearIcon.Font = Enum.Font.GothamBold
 GearIcon.AutoButtonColor = false
@@ -129,7 +134,7 @@ TitleText.Size = UDim2.new(1, -85, 1, 0)
 TitleText.Position = UDim2.new(0, 45, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "NEXUS // ULTIMATE SUITE"
-TitleText.TextColor3 = Theme.TextPrimary
+TitleText.TextColor3 = Core.Theme.TextPrimary
 TitleText.TextSize = 12
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
@@ -141,7 +146,7 @@ MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -38, 0.5, -15)
 MinBtn.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
 MinBtn.Text = "-"
-MinBtn.TextColor3 = Theme.TextSecondary
+MinBtn.TextColor3 = Core.Theme.TextSecondary
 MinBtn.TextSize = 16
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.AutoButtonColor = false
@@ -151,6 +156,7 @@ local MinCorner = Instance.new("UICorner")
 MinCorner.CornerRadius = UDim.new(0, 8)
 MinCorner.Parent = MinBtn
 
+-- Draggable Logic
 local dragging, dragInput, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -169,16 +175,15 @@ TitleBar.InputChanged:Connect(function(input)
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
+Core.Services.UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        State.OriginalPosition = MainFrame.Position
+        Core.State.OriginalPosition = MainFrame.Position
     end
 end)
--- =================================================================
--- NEXUS ELITE // SECTION 2: Rayfield Categories & UI Elements
--- =================================================================
+
+-- Container & Rayfield Elements
 local Container = Instance.new("ScrollingFrame")
 Container.Name = "Container"
 Container.Size = UDim2.new(1, -24, 1, -56)
@@ -201,7 +206,7 @@ local function createSectionLabel(text)
     label.Size = UDim2.new(1, 0, 0, 24)
     label.BackgroundTransparency = 1
     label.Text = text
-    label.TextColor3 = Theme.AccentOrange
+    label.TextColor3 = Core.Theme.AccentOrange
     label.TextSize = 11
     label.Font = Enum.Font.GothamBold
     label.TextXAlignment = Enum.TextXAlignment.Left
@@ -212,7 +217,7 @@ end
 local function createCard(height)
     local card = Instance.new("Frame")
     card.Size = UDim2.new(1, 0, 0, height)
-    card.BackgroundColor3 = Theme.InnerCard
+    card.BackgroundColor3 = Core.Theme.InnerCard
     card.BorderSizePixel = 0
     card.Parent = Container
 
@@ -224,11 +229,9 @@ local function createCard(height)
     stroke.Color = Color3.fromRGB(50, 25, 25)
     stroke.Thickness = 1
     stroke.Parent = card
-    
     return card
 end
 
--- Category 1: Combat & Triggerbot
 createSectionLabel("  // COMBAT & TRIGGERBOT")
 local AutoCard = createCard(46)
 local AutoLabel = Instance.new("TextLabel")
@@ -236,7 +239,7 @@ AutoLabel.Size = UDim2.new(1, -70, 1, 0)
 AutoLabel.Position = UDim2.new(0, 12, 0, 0)
 AutoLabel.BackgroundTransparency = 1
 AutoLabel.Text = "🎯 Auto-Shoot Triggerbot"
-AutoLabel.TextColor3 = Theme.TextPrimary
+AutoLabel.TextColor3 = Core.Theme.TextPrimary
 AutoLabel.TextSize = 12
 AutoLabel.Font = Enum.Font.GothamMedium
 AutoLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -249,22 +252,18 @@ AutoTrack.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
 AutoTrack.Text = ""
 AutoTrack.AutoButtonColor = false
 AutoTrack.Parent = AutoCard
-
 local AutoTrackCorner = Instance.new("UICorner")
 AutoTrackCorner.CornerRadius = UDim.new(1, 0)
 AutoTrackCorner.Parent = AutoTrack
-
 local AutoKnob = Instance.new("Frame")
 AutoKnob.Size = UDim2.new(0, 16, 0, 16)
 AutoKnob.Position = UDim2.new(0, 3, 0.5, -8)
 AutoKnob.BackgroundColor3 = Color3.fromRGB(160, 130, 130)
 AutoKnob.Parent = AutoTrack
-
 local AutoKnobCorner = Instance.new("UICorner")
 AutoKnobCorner.CornerRadius = UDim.new(1, 0)
 AutoKnobCorner.Parent = AutoKnob
 
--- Category 2: Aim Assist & Targeting
 createSectionLabel("  // AIM ASSIST & TARGETING")
 local AimCard = createCard(46)
 local AimLabel = Instance.new("TextLabel")
@@ -272,7 +271,7 @@ AimLabel.Size = UDim2.new(1, -70, 1, 0)
 AimLabel.Position = UDim2.new(0, 12, 0, 0)
 AimLabel.BackgroundTransparency = 1
 AimLabel.Text = "👁️ Soft Aim Assist + Wallcheck"
-AimLabel.TextColor3 = Theme.TextPrimary
+AimLabel.TextColor3 = Core.Theme.TextPrimary
 AimLabel.TextSize = 12
 AimLabel.Font = Enum.Font.GothamMedium
 AimLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -285,22 +284,18 @@ AimTrack.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
 AimTrack.Text = ""
 AimTrack.AutoButtonColor = false
 AimTrack.Parent = AimCard
-
 local AimTrackCorner = Instance.new("UICorner")
 AimTrackCorner.CornerRadius = UDim.new(1, 0)
 AimTrackCorner.Parent = AimTrack
-
 local AimKnob = Instance.new("Frame")
 AimKnob.Size = UDim2.new(0, 16, 0, 16)
 AimKnob.Position = UDim2.new(0, 3, 0.5, -8)
 AimKnob.BackgroundColor3 = Color3.fromRGB(160, 130, 130)
 AimKnob.Parent = AimTrack
-
 local AimKnobCorner = Instance.new("UICorner")
 AimKnobCorner.CornerRadius = UDim.new(1, 0)
 AimKnobCorner.Parent = AimKnob
 
--- Category 3: Sensitivity & Config
 createSectionLabel("  // SENSITIVITY & CONFIG")
 local SensCard = createCard(46)
 local SensLabel = Instance.new("TextLabel")
@@ -308,7 +303,7 @@ SensLabel.Size = UDim2.new(1, -85, 1, 0)
 SensLabel.Position = UDim2.new(0, 12, 0, 0)
 SensLabel.BackgroundTransparency = 1
 SensLabel.Text = "⚙️ Camera Sensitivity (Uncapped)"
-SensLabel.TextColor3 = Theme.TextPrimary
+SensLabel.TextColor3 = Core.Theme.TextPrimary
 SensLabel.TextSize = 12
 SensLabel.Font = Enum.Font.GothamMedium
 SensLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -319,22 +314,19 @@ SensBox.Size = UDim2.new(0, 60, 0, 26)
 SensBox.Position = UDim2.new(1, -70, 0.5, -13)
 SensBox.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
 SensBox.Text = "1.0"
-SensBox.TextColor3 = Theme.TextPrimary
+SensBox.TextColor3 = Core.Theme.TextPrimary
 SensBox.TextSize = 12
 SensBox.Font = Enum.Font.GothamBold
 SensBox.ClearTextOnFocus = false
 SensBox.Parent = SensCard
-
 local SensBoxCorner = Instance.new("UICorner")
 SensBoxCorner.CornerRadius = UDim.new(0, 6)
 SensBoxCorner.Parent = SensBox
-
 local SensBoxStroke = Instance.new("UIStroke")
 SensBoxStroke.Color = Color3.fromRGB(60, 30, 30)
 SensBoxStroke.Thickness = 1
 SensBoxStroke.Parent = SensBox
 
--- Category 4: Status Monitor
 createSectionLabel("  // STATUS MONITOR")
 local StatusCard = createCard(38)
 local StatusText = Instance.new("TextLabel")
@@ -348,81 +340,101 @@ StatusText.Font = Enum.Font.Gotham
 StatusText.TextSize = 11
 StatusText.TextXAlignment = Enum.TextXAlignment.Left
 StatusText.Parent = StatusCard
+
+-- Store references for Part 2
+Core.UI = {
+    MainFrame = MainFrame,
+    GearIcon = GearIcon,
+    TitleText = TitleText,
+    MinBtn = MinBtn,
+    Container = Container,
+    SensBox = SensBox,
+    AutoTrack = AutoTrack,
+    AimTrack = AimTrack,
+    StatusText = StatusText
+}
+print("Nexus Elite Part 1 Loaded Successfully!")
 -- =================================================================
--- NEXUS ELITE // SECTION 3: Precise Up-then-Left Animations & Toggles
+-- NEXUS ELITE // PART 2: Animations & Combat Loop (Run right after Part 1)
 -- =================================================================
+local Core = getgenv().NexusSuite
+local UI = Core.UI
+local S = Core.Services
+local TS = S.TweenService
+
+-- Up-then-Left Close Animation & Gear Toggle
 local function toggleOpenClose()
-    State.IsOpen = not State.IsOpen
-    local currentPos = MainFrame.Position
+    Core.State.IsOpen = not Core.State.IsOpen
+    local currentPos = UI.MainFrame.Position
     
-    if not State.IsOpen then
-        Container.Visible = false
-        TitleText.Visible = false
-        MinBtn.Visible = false
+    if not Core.State.IsOpen then
+        UI.Container.Visible = false
+        UI.TitleText.Visible = false
+        UI.MinBtn.Visible = false
         
         local upPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset, currentPos.Y.Scale, currentPos.Y.Offset - 40)
-        local tweenUp = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = upPos})
+        local tweenUp = TS:Create(UI.MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = upPos})
         tweenUp:Play()
         tweenUp.Completed:Wait()
         
         local leftPos = UDim2.new(currentPos.X.Scale, currentPos.X.Offset - 120, currentPos.Y.Scale, currentPos.Y.Offset - 40)
-        local tweenSlide = TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        local tweenSlide = TS:Create(UI.MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
             Position = leftPos,
-            Size = State.ClosedSize
+            Size = Core.State.ClosedSize
         })
-        local tweenGear = TweenService:Create(GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Rotation = GearIcon.Rotation - 360
+        local tweenGear = TS:Create(UI.GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Rotation = UI.GearIcon.Rotation - 360
         })
         tweenSlide:Play()
         tweenGear:Play()
     else
-        local tweenExpand = TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Position = State.OriginalPosition,
-            Size = State.OriginalSize
+        local tweenExpand = TS:Create(UI.MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Position = Core.State.OriginalPosition,
+            Size = Core.State.OriginalSize
         })
-        local tweenGear = TweenService:Create(GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        local tweenGear = TS:Create(UI.GearIcon, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
             Rotation = 0
         })
         tweenExpand:Play()
         tweenGear:Play()
         
         tweenExpand.Completed:Wait()
-        Container.Visible = true
-        TitleText.Visible = true
-        MinBtn.Visible = true
-        MinBtn.Text = "-"
+        UI.Container.Visible = true
+        UI.TitleText.Visible = true
+        UI.MinBtn.Visible = true
+        UI.MinBtn.Text = "-"
     end
 end
 
-GearIcon.MouseButton1Click:Connect(toggleOpenClose)
-MinBtn.MouseButton1Click:Connect(toggleOpenClose)
+UI.GearIcon.MouseButton1Click:Connect(toggleOpenClose)
+UI.MinBtn.MouseButton1Click:Connect(toggleOpenClose)
 
--- Startup Animation
+-- Startup Opening Animation
 task.spawn(function()
-    MainFrame.Size = State.ClosedSize
-    Container.Visible = false
-    TitleText.Visible = false
-    MinBtn.Visible = false
-    GearIcon.Rotation = -360
+    UI.MainFrame.Size = Core.State.ClosedSize
+    UI.Container.Visible = false
+    UI.TitleText.Visible = false
+    UI.MinBtn.Visible = false
+    UI.GearIcon.Rotation = -360
     task.wait(0.2)
     
-    State.IsOpen = true
-    Container.Visible = true
-    TitleText.Visible = true
-    MinBtn.Visible = true
-    MinBtn.Text = "-"
+    Core.State.IsOpen = true
+    UI.Container.Visible = true
+    UI.TitleText.Visible = true
+    UI.MinBtn.Visible = true
+    UI.MinBtn.Text = "-"
     
-    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = State.OriginalSize}):Play()
-    TweenService:Create(GearIcon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0}):Play()
+    TS:Create(UI.MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = Core.State.OriginalSize}):Play()
+    TS:Create(UI.GearIcon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Rotation = 0}):Play()
 end)
 
-SensBox.FocusLost:Connect(function()
-    local val = tonumber(SensBox.Text)
+UI.SensBox.FocusLost:Connect(function()
+    local val = tonumber(UI.SensBox.Text)
     if val then
-        Config.Sensitivity = math.max(0.01, val)
-        SensBox.Text = tostring(Config.Sensitivity)
+        Core.Config.Sensitivity = math.max(0.01, val)
+        UI.SensBox.Text = tostring(Core.Config.Sensitivity)
     else
-        SensBox.Text = tostring(Config.Sensitivity)
+        UI.SensBox.Text = tostring(Core.Config.Sensitivity)
     end
 end)
 
@@ -430,7 +442,7 @@ local function bindToggle(trackButton, configKey)
     local state = false
     trackButton.MouseButton1Click:Connect(function()
         state = not state
-        Config[configKey] = state
+        Core.Config[configKey] = state
         
         local knob = trackButton:FindFirstChildOfClass("Frame")
         local knobGoal = {}
@@ -440,7 +452,7 @@ local function bindToggle(trackButton, configKey)
         if state then
             knobGoal.Position = UDim2.new(1, -19, 0.5, -8)
             trackGoal.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-            knobColorGoal.BackgroundColor3 = Theme.TextPrimary
+            knobColorGoal.BackgroundColor3 = Core.Theme.TextPrimary
         else
             knobGoal.Position = UDim2.new(0, 3, 0.5, -8)
             trackGoal.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
@@ -448,30 +460,29 @@ local function bindToggle(trackButton, configKey)
         end
         
         if knob then
-            TweenService:Create(knob, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), knobGoal):Play()
-            TweenService:Create(knob, TweenInfo.new(0.2), knobColorGoal):Play()
+            TS:Create(knob, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), knobGoal):Play()
+            TS:Create(knob, TweenInfo.new(0.2), knobColorGoal):Play()
         end
-        TweenService:Create(trackButton, TweenInfo.new(0.2), trackGoal):Play()
+        TS:Create(trackButton, TweenInfo.new(0.2), trackGoal):Play()
     end)
 end
 
-bindToggle(AutoTrack, "AutoShoot")
-bindToggle(AimTrack, "AimAssist")
--- =================================================================
--- NEXUS ELITE // SECTION 4: Combat Engine, Wallcheck & Loop
--- =================================================================
-local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
+bindToggle(UI.AutoTrack, "AutoShoot")
+bindToggle(UI.AimTrack, "AimAssist")
+
+-- Combat Engine & Wallcheck
+local remotesFolder = S.ReplicatedStorage:FindFirstChild("Remotes")
 if remotesFolder then
     local startSpectatingRemote = remotesFolder:FindFirstChild("StartSpectating")
     if startSpectatingRemote then
         startSpectatingRemote.OnClientEvent:Connect(function()
-            State.IsSpectating = true
+            Core.State.IsSpectating = true
         end)
     end
 end
 
-LocalPlayer.CharacterAdded:Connect(function()
-    State.IsSpectating = false
+Core.LocalPlayer.CharacterAdded:Connect(function()
+    Core.State.IsSpectating = false
 end)
 
 local function getCharacterFromInstance(instance)
@@ -486,12 +497,12 @@ local function getCharacterFromInstance(instance)
 end
 
 local function isVisible(targetPart, targetChar)
-    local origin = Camera.CFrame.Position
+    local origin = Core.Camera.CFrame.Position
     local direction = targetPart.Position - origin
     
     local raycastParams = RaycastParams.new()
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
+    raycastParams.FilterDescendantsInstances = {Core.LocalPlayer.Character, targetChar}
     raycastParams.IgnoreWater = true
     
     local result = workspace:Raycast(origin, direction, raycastParams)
@@ -506,9 +517,9 @@ local function isVisible(targetPart, targetChar)
 end
 
 local function fireAt(targetPart)
-    local ClientRemotes = LocalPlayer:FindFirstChild("ClientRemotes")
-    local ModuleScripts = ReplicatedStorage:FindFirstChild("ModuleScripts")
-    if not ClientRemotes || not ModuleScripts then return end
+    local ClientRemotes = Core.LocalPlayer:FindFirstChild("ClientRemotes")
+    local ModuleScripts = S.ReplicatedStorage:FindFirstChild("ModuleScripts")
+    if not ClientRemotes or not ModuleScripts then return end
 
     local Reload = ClientRemotes:FindFirstChild("Reload")
     local CheckFire = ClientRemotes:FindFirstChild("CheckFire")
@@ -520,7 +531,7 @@ local function fireAt(targetPart)
     if not (CheckFire and CheckShot and ProjectileFinished and ProjectileRender) then return end
 
     local indexVal = tick() + math.random()
-    local originPos = Camera.CFrame.Position
+    local originPos = Core.Camera.CFrame.Position
     local hitPos = targetPart.Position
 
     pcall(function()
@@ -529,17 +540,17 @@ local function fireAt(targetPart)
 
         ProjectileRender:FireServer({
             Type = "Bullet", Index = indexVal, Origin = originPos,
-            Owner = LocalPlayer.Character, Endpoint = hitPos,
+            Owner = Core.LocalPlayer.Character, Endpoint = hitPos,
             Life = 5, Force = 130, Gravity = 0, Wind = Vector3.new(0, 0, 0)
         })
 
-        local cf = Camera.CFrame
+        local cf = Core.Camera.CFrame
         CheckShot:FireServer(0, 0, 1, 0.8, cf, hitPos, targetPart, 11, indexVal)
 
         ProjectileFinished:FireServer({
             Index = indexVal, Origin = originPos, CFrame = CFrame.new(hitPos),
             ExpRadius = 15, LaserColor = Color3.new(1, 0, 0), LaserSpeed = 10,
-            LaserTime = 0.7, Effect = "Gib_T", ExpColor = Theme.AccentOrange,
+            LaserTime = 0.7, Effect = "Gib_T", ExpColor = Core.Theme.AccentOrange,
             LaserTexture = "rbxassetid://4813348676", Explosive = false,
             HitPlayer = true, IsLaser = false, LaserWidth = 3,
             ExpSound = "rbxassetid://2814354338", LaserLength = 5, LaserEmission = 1
@@ -551,38 +562,38 @@ local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 raycastParams.IgnoreWater = true
 
-RunService.RenderStepped:Connect(function()
-    if State.IsSpectating or (LocalPlayer.PlayerGui:FindFirstChild("Sp")) then
-        StatusText.Text = "● Status: Spectating (Paused)"
-        StatusText.TextColor3 = Color3.fromRGB(255, 90, 90)
+S.RunService.RenderStepped:Connect(function()
+    if Core.State.IsSpectating or (Core.LocalPlayer.PlayerGui:FindFirstChild("Sp")) then
+        UI.StatusText.Text = "● Status: Spectating (Paused)"
+        UI.StatusText.TextColor3 = Color3.fromRGB(255, 90, 90)
         return
     else
-        StatusText.Text = "● Status: Operational"
-        StatusText.TextColor3 = Color3.fromRGB(0, 229, 140)
+        UI.StatusText.Text = "● Status: Operational"
+        UI.StatusText.TextColor3 = Color3.fromRGB(0, 229, 140)
     end
 
-    local character = LocalPlayer.Character
+    local character = Core.LocalPlayer.Character
     if not character or not character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("Humanoid").Health <= 0 then 
         return 
     end
 
-    if Config.AimAssist then
+    if Core.Config.AimAssist then
         local closestTarget = nil
         local shortestDist = math.huge
-        local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        local mousePos = Vector2.new(Core.Camera.ViewportSize.X / 2, Core.Camera.ViewportSize.Y / 2)
         
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
+        for _, player in ipairs(S.Players:GetPlayers()) do
+            if player ~= Core.LocalPlayer and player.Character then
                 local targetChar = player.Character
                 local hum = targetChar:FindFirstChildOfClass("Humanoid")
                 local head = targetChar:FindFirstChild("Head")
                 
                 if hum and hum.Health > 0 and head then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    local screenPos, onScreen = Core.Camera:WorldToViewportPoint(head.Position)
                     if onScreen then
                         local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                         
-                        if screenDist <= Config.AimFOV and isVisible(head, targetChar) then
+                        if screenDist <= Core.Config.AimFOV and isVisible(head, targetChar) then
                             if screenDist < shortestDist then
                                 shortestDist = screenDist
                                 closestTarget = head
@@ -594,18 +605,18 @@ RunService.RenderStepped:Connect(function()
         end
         
         if closestTarget then
-            local targetCF = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
-            local smoothFactor = math.clamp(0.02 * Config.Sensitivity, 0.005, 1.0)
-            Camera.CFrame = Camera.CFrame:Lerp(targetCF, smoothFactor)
+            local targetCF = CFrame.new(Core.Camera.CFrame.Position, closestTarget.Position)
+            local smoothFactor = math.clamp(0.02 * Core.Config.Sensitivity, 0.005, 1.0)
+            Core.Camera.CFrame = Core.Camera.CFrame:Lerp(targetCF, smoothFactor)
         end
     end
 
-    if not Config.AutoShoot then return end
-    if tick() - State.LastShotTime < Config.FireCooldown then return end
+    if not Core.Config.AutoShoot then return end
+    if tick() - Core.State.LastShotTime < Core.Config.FireCooldown then return end
 
     raycastParams.FilterDescendantsInstances = {character}
-    local viewportRay = Camera:ViewportPointToRay(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    local result = workspace:Raycast(viewportRay.Origin, viewportRay.Direction * Config.MaxDistance, raycastParams)
+    local viewportRay = Core.Camera:ViewportPointToRay(Core.Camera.ViewportSize.X / 2, Core.Camera.ViewportSize.Y / 2)
+    local result = workspace:Raycast(viewportRay.Origin, viewportRay.Direction * Core.Config.MaxDistance, raycastParams)
 
     if result and result.Instance then
         local hitInstance = result.Instance
@@ -613,13 +624,14 @@ RunService.RenderStepped:Connect(function()
 
         if targetChar then
             local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
-            local player = Players:GetPlayerFromCharacter(targetChar)
+            local player = S.Players:GetPlayerFromCharacter(targetChar)
 
-            if humanoid and humanoid.Health > 0 and player and player ~= LocalPlayer then
-                State.LastShotTime = tick()
+            if humanoid and humanoid.Health > 0 and player and player ~= Core.LocalPlayer then
+                Core.State.LastShotTime = tick()
                 local targetPart = targetChar:FindFirstChild("Head") or targetChar:FindFirstChild("HumanoidRootPart") or hitInstance
                 fireAt(targetPart)
             end
         end
     end
 end)
+print("Nexus Elite Part 2 Loaded Successfully!")
